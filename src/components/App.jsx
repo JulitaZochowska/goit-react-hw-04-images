@@ -3,7 +3,7 @@ import ImageGallery from './ImageGallery';
 import Button from './Button';
 import { Dna } from 'react-loader-spinner';
 
-import React, { Component } from 'react';
+import React, { useEffect, useState } from 'react';
 
 import css from './App.module.css';
 import Modal from './Modal';
@@ -20,98 +20,120 @@ const INITIAL_STATE = {
   perPage: 12,
 };
 
-class App extends Component {
-  state = INITIAL_STATE;
+export const App = () => {
+  const [searchInput, setSearchInput] = useState(INITIAL_STATE.searchInput);
+  const [largeImageURI, setLargeImageURI] = useState(
+    INITIAL_STATE.largeImageURI
+  );
+  const [imageGallery, setImageGallery] = useState(INITIAL_STATE.imageGallery);
+  const [totalHits, setTotalHits] = useState(INITIAL_STATE.totalHits);
+  const [isLoading, setIsLoading] = useState(INITIAL_STATE.isLoading);
+  const [isModalOpen, setIsModalOpen] = useState(INITIAL_STATE.isModalOpen);
+  const [isLoadMoreButtonEnabled, setIsLoadMoreButtonEnabled] = useState(
+    INITIAL_STATE.isLoadMoreButtonEnabled
+  );
+  const [page, setPage] = useState(INITIAL_STATE.page);
+  const [perPage, setPerPage] = useState(INITIAL_STATE.perPage);
 
-  updateSearchInput = query => {
-    if (query !== this.state.searchInput) {
-      this.setState(prevState => ({ ...INITIAL_STATE, searchInput: query }));
+  const updateSearchInput = query => {
+    if (query !== searchInput) {
+      setSearchInput(query);
     }
   };
 
-  incrementPage = () => {
-    this.setState(prevState => ({ page: prevState.page + 1 }));
+  const incrementPage = () => {
+    setPage(prevState => prevState + 1);
   };
 
-  closeModal = () => {
-    this.setState({ isModalOpen: false });
+  const closeModal = () => {
+    setIsModalOpen(false);
   };
 
-  selectLargeImage = uri => {
-    this.setState({ largeImageURI: uri, isModalOpen: true });
+  const selectLargeImage = uri => {
+    setLargeImageURI(uri);
+    setIsModalOpen(true);
   };
 
-  async componentDidUpdate(prevProps, prevState) {
-    console.log(this.state);
-    const { searchInput, isLoading, totalHits, page, perPage, imageGallery } =
-      this.state;
-    if (
-      (searchInput !== prevState.searchInput || page !== prevState.page) &&
-      searchInput.length > 0
-    ) {
-      const data = await this.fetchImages();
-      this.setState(prevState => ({
-        imageGallery: [...imageGallery, ...data.hits],
-        totalHits: data.totalHits, // Przyda się do przycisku "load more" - będę porównywać ilość wyświetlonych obrazków z tym "totalHits" i na tej podstawie wyświetlać przycisk.
-      }));
-    }
-
-    if (searchInput.length === 0) {
-      this.setState({ ...INITIAL_STATE });
-    }
-
-    const isLoadMoreButtonEnabled = totalHits > page * perPage && !isLoading;
-    // Porównujemy obecną wartość z poprzednią wartością, aby nie aktualizować
-    // stanu niepotrzebnie - w tej metodzie stworzyłoby to
-    // "nieskończony" ciąg wywołań (pętlę) - co zawiesi przeglądarkę
-    if (prevState.isLoadMoreButtonEnabled !== isLoadMoreButtonEnabled) {
-      this.setState({ isLoadMoreButtonEnabled: isLoadMoreButtonEnabled });
-    }
-  }
-
-  fetchImages = async () => {
+  const fetchImages = async addToExistingState => {
     try {
-      this.setState({ isLoading: true }); //Ważne jest, aby przy każdym "nowym" wyszukiwaniu wyresetować wartości
+      console.log({
+        page: page,
+        searchInput: searchInput,
+      });
+      setIsLoading(true); //Ważne jest, aby przy każdym "nowym" wyszukiwaniu wyresetować wartości
       const response = await fetch(
-        `https://pixabay.com/api/?q=${this.state.searchInput}&page=${this.state.page}&key=36881053-d0d1537e2fca48fbbc934d91b&image_type=photo&orientation=horizontal&per_page=${this.state.perPage}`
+        `https://pixabay.com/api/?q=${searchInput}&page=${page}&key=36881053-d0d1537e2fca48fbbc934d91b&image_type=photo&orientation=horizontal&per_page=${perPage}`
       );
 
-      return response.json();
+      const json = await response.json();
+
+      setTotalHits(json.totalHits);
+      if (addToExistingState) {
+        setImageGallery([...imageGallery, ...json.hits]);
+      } else {
+        setImageGallery(json.hits);
+      }
     } catch (error) {
       console.error(error);
     } finally {
       // Możemy w opcjonalnym bloku finally umieścić instrukcje, które mają zawsze się wykonać, niezależnie od tego, czy wyjątek zostanie złapany, czy nie.
-      this.setState({ isLoading: false });
+      setIsLoading(false);
     }
   };
 
-  render() {
-    return (
-      <div className={css.App}>
-        <Searchbar onSubmit={this.updateSearchInput} />
-        <ImageGallery
-          images={this.state.imageGallery}
-          onEnlargeImage={this.selectLargeImage}
-        />
-        <div className={css.buttonLoaderWrapper}>
-          <Dna
-            visible={this.state.isLoading}
-            height="80"
-            width="80"
-            ariaLabel="dna-loading"
-            wrapperStyle={{}}
-            wrapperClass="dna-wrapper"
-          />
-          {this.state.isLoadMoreButtonEnabled && (
-            <Button onClick={this.incrementPage} />
-          )}
-        </div>
-        {this.state.isModalOpen && (
-          <Modal image={this.state.largeImageURI} onClose={this.closeModal} />
-        )}
-      </div>
-    );
-  }
-}
+  useEffect(() => {
+    if (page !== 1) {
+      fetchImages(true);
+    }
+  }, [page]);
 
+  useEffect(() => {
+    if (searchInput.length > 0) {
+      fetchImages(false);
+    }
+  }, [searchInput]);
+
+  useEffect(() => {
+    if (searchInput.length === 0) {
+      setSearchInput(INITIAL_STATE.searchInput);
+      setLargeImageURI(INITIAL_STATE.largeImageURI);
+      setImageGallery(INITIAL_STATE.imageGallery);
+      setTotalHits(INITIAL_STATE.totalHits);
+      setIsLoading(INITIAL_STATE.isLoading);
+      setIsModalOpen(INITIAL_STATE.isModalOpen);
+      setIsLoadMoreButtonEnabled(INITIAL_STATE.isLoadMoreButtonEnabled);
+      setPage(INITIAL_STATE.page);
+      setPerPage(INITIAL_STATE.perPage);
+    }
+  }, [searchInput]);
+
+  useEffect(() => {
+    const canLoadMore = totalHits > page * perPage && !isLoading;
+    // Porównujemy obecną wartość z poprzednią wartością, aby nie aktualizować
+    // stanu niepotrzebnie - w tej metodzie stworzyłoby to
+    // "nieskończony" ciąg wywołań (pętlę) - co zawiesi przeglądarkę
+    if (isLoadMoreButtonEnabled !== canLoadMore) {
+      setIsLoadMoreButtonEnabled(canLoadMore);
+    }
+  }, [totalHits, page, perPage, isLoading]);
+
+  return (
+    <div className={css.App}>
+      <Searchbar onSubmit={updateSearchInput} />
+      <ImageGallery images={imageGallery} onEnlargeImage={selectLargeImage} />
+      <div className={css.buttonLoaderWrapper}>
+        <Dna
+          visible={isLoading}
+          height="80"
+          width="80"
+          ariaLabel="dna-loading"
+          wrapperStyle={{}}
+          wrapperClass="dna-wrapper"
+        />
+        {isLoadMoreButtonEnabled && <Button onClick={incrementPage} />}
+      </div>
+      {isModalOpen && <Modal image={largeImageURI} onClose={closeModal} />}
+    </div>
+  );
+};
 export default App;
