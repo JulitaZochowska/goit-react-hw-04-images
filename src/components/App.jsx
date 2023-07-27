@@ -85,13 +85,13 @@ export const App = () => {
     if (page !== 1) {
       fetchImages(true);
     }
-  }, [page]);
+  }, [page]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (searchInput.length > 0) {
       fetchImages(false);
     }
-  }, [searchInput]);
+  }, [searchInput]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (searchInput.length === 0) {
@@ -115,7 +115,7 @@ export const App = () => {
     if (isLoadMoreButtonEnabled !== canLoadMore) {
       setIsLoadMoreButtonEnabled(canLoadMore);
     }
-  }, [totalHits, page, perPage, isLoading]);
+  }, [totalHits, page, perPage, isLoading]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <div className={css.App}>

@@ -1,36 +1,36 @@
-import React, { Component } from 'react';
+import React from 'react';
 import PropTypes from 'prop-types';
 
 import css from './Modal.module.css';
+import { useEffect } from 'react';
 
-class Modal extends Component {
-  onKeyPress = e => {
+export const Modal = ({ onClose, image }) => {
+  const onKeyPress = e => {
     if (e.key === 'Escape') {
-      this.props.onClose();
+      onClose();
     }
   };
+  // componentDidMount
+  useEffect(() => {
+    document.addEventListener('keydown', onKeyPress);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  componentDidMount() {
-    document.addEventListener('keydown', this.onKeyPress);
-  }
+  // componentWillUnmount
+  useEffect(() => {
+    return () => {
+      document.removeEventListener('keydown', onKeyPress);
+    };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  componentWillUnmount() {
-    document.removeEventListener('keydown', this.onKeyPress);
-  }
-
-  render() {
-    const { image, onClose } = this.props;
-
-    return (
-      // zamyka modala po kliknięciu w tło
-      <div className={css.Overlay} onClick={onClose}>
-        <div className={css.Modal}>
-          <img src={image} alt="largeImage" />
-        </div>
+  return (
+    // zamyka modala po kliknięciu w tło
+    <div className={css.Overlay} onClick={onClose}>
+      <div className={css.Modal}>
+        <img src={image} alt="largeImage" />
       </div>
-    );
-  }
-}
+    </div>
+  );
+};
 
 Modal.propTypes = {
   image: PropTypes.string,
